@@ -1,0 +1,28 @@
+name: Stripe PaymentIntent Endpoint
+
+on:
+  workflow_dispatch:  # Manual trigger from GitHub UI
+  schedule:
+    - cron: '0 */6 * * *'  # Every 6 hours (keeps warm, optional)
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install dependencies
+      run: npm install stripe
+
+    - name: Run function (for testing/warmup)
+      env:
+        STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+      run: node create-intent.js  # or just keep alive
+
+    # No real server — use this as webhook target or call via dispatch
