@@ -1,0 +1,53 @@
+name: Create Stripe Payment Intent
+
+on:
+  workflow_dispatch:          # This enables manual trigger
+    inputs:
+      amount:
+        description: 'Amount in cents (e.g. 10000 for $100)'
+        required: true
+        type: number
+      currency:
+        description: 'Currency code (e.g. usd)'
+        required: false
+        default: 'usd'
+        type: string
+
+jobs:
+  create-intent:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install stripe
+
+      - name: Create PaymentIntent
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        run: |
+          node -e "
+          const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+          (async () => {
+            try {
+              const intent = await stripe.paymentIntents.create({
+                amount: ${{ inputs.amount }},
+                currency: '${{ inputs.currency }}',
+                automatic_payment_methods: { enabled: true },
+              });
+              console.log('Success: ' + JSON.stringify({
+                clientSecret: intent.client_secret,
+                paymentIntentId: intent.id
+              }));
+            } catch (err) {
+              console.error('Error: ' + err.message);
+              process.exit(1);
+            }
+          })();
+          "
